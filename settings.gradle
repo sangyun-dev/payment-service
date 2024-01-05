@@ -1,3 +1,4 @@
 rootProject.name = 'Payment'
 include 'membership-service'
+include 'common'
 
