@@ -6,7 +6,7 @@ import com.payment.membership.application.port.in.ModifyMembershipCommand;
 import com.payment.membership.application.port.in.ModifyMembershipUseCase;
 import com.payment.membership.application.port.out.ModifyMembershipPort;
 import com.payment.membership.domain.Membership;
-import common.UseCase;
+import com.payment.common.UseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 

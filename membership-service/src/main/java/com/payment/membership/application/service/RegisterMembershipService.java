@@ -6,9 +6,8 @@ import com.payment.membership.application.port.in.RegisterMembershipCommand;
 import com.payment.membership.application.port.in.RegisterMembershipUseCase;
 import com.payment.membership.application.port.out.RegisterMembershipPort;
 import com.payment.membership.domain.Membership;
-import common.UseCase;
+import com.payment.common.UseCase;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @UseCase

@@ -3,7 +3,7 @@ package com.payment.membership.adapter.in.web;
 import com.payment.membership.application.port.in.FindMembershipCommand;
 import com.payment.membership.application.port.in.FindMembershipUseCase;
 import com.payment.membership.domain.Membership;
-import common.WebAdapter;
+import com.payment.common.WebAdapter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

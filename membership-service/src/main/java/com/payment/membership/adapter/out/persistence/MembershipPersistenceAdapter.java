@@ -4,7 +4,7 @@ import com.payment.membership.application.port.out.FindMembershipPort;
 import com.payment.membership.application.port.out.ModifyMembershipPort;
 import com.payment.membership.application.port.out.RegisterMembershipPort;
 import com.payment.membership.domain.Membership;
-import common.PersistenceAdapter;
+import com.payment.common.PersistenceAdapter;
 import lombok.RequiredArgsConstructor;
 
 @PersistenceAdapter
