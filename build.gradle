@@ -26,6 +26,10 @@ subprojects {
     dependencies {
         compileOnly('org.projectlombok:lombok')
         annotationProcessor('org.projectlombok:lombok')
+
+        implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop', version: '2.7.3'
+        implementation group: 'org.springframework.kafka', name: 'spring-kafka'
+
     }
 
     test {
