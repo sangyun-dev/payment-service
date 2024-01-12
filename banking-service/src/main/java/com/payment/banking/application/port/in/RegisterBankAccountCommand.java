@@ -28,5 +28,7 @@ public class RegisterBankAccountCommand extends SelfValidating<RegisterBankAccou
         this.bankName = bankName;
         this.bankAccountNumber = bankAccountNumber;
         this.linkedStatusIsValid = linkedStatusIsValid;
+
+        this.validateSelf();
     }
 }
