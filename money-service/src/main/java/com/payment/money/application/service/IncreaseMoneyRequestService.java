@@ -1,16 +1,24 @@
 package com.payment.money.application.service;
 
+import com.payment.common.CountDownLatchManager;
+import com.payment.common.RechargingMoneyTask;
+import com.payment.common.SubTask;
 import com.payment.common.UseCase;
 import com.payment.money.adapter.out.persistence.MemberMoneyJpaEntity;
 import com.payment.money.adapter.out.persistence.MoneyChangingRequestMapper;
 import com.payment.money.application.port.in.IncreaseMoneyRequestCommand;
 import com.payment.money.application.port.in.IncreaseMoneyRequestUseCase;
+import com.payment.money.application.port.out.GetMembershipPort;
 import com.payment.money.application.port.out.IncreaseMoneyPort;
+import com.payment.money.application.port.out.MembershipStatus;
+import com.payment.money.application.port.out.SendRechargingMoneyTaskPort;
 import com.payment.money.domain.MemberMoney;
 import com.payment.money.domain.MoneyChangingRequest;
 import lombok.RequiredArgsConstructor;
 
 import javax.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @UseCase
@@ -22,10 +30,20 @@ public class IncreaseMoneyRequestService implements IncreaseMoneyRequestUseCase 
 
     private final MoneyChangingRequestMapper mapper;
 
+    private final GetMembershipPort getMembershipPort;
+
+    private final SendRechargingMoneyTaskPort sendRechargingMoneyTaskPort;
+
+    private final CountDownLatchManager countDownLatchManager;
+
     @Override
     public MoneyChangingRequest increaseMoneyRequest(IncreaseMoneyRequestCommand command) {
         // 머니의 충전.증액이라는 과정
         // 1. 고객 정보가 정상인지 확인 (멤버)
+        MembershipStatus membershipStatus = getMembershipPort.getMembership(command.getTargetMembershipId());
+        if (!membershipStatus.isValid()) {
+            return null;
+        }
 
         // 2. 고객의 연동된 계좌가 있는지, 고객의 연동된 계좌의 잔액이 충분한지도 확인 (뱅킹)
 
@@ -53,6 +71,77 @@ public class IncreaseMoneyRequestService implements IncreaseMoneyRequestUseCase 
         }
 
         // 6-2. 결과가 실패라면, 실패라고 MoneyChangingRequest 상태값을 변동 후에 리턴
+        return null;
+    }
+
+    @Override
+    public MoneyChangingRequest increaseMoneyRequestAsync(IncreaseMoneyRequestCommand command) {
+
+        // 1. SubTask, Task
+        SubTask validMemberTask = SubTask.builder()
+                .subTaskName("validMemberTask : " + "멤버십 유효성 검사")
+                .membershipId(command.getTargetMembershipId())
+                .taskType("membership")
+                .status("ready")
+                .build();
+
+        // Banking SubTask
+        // Banking ValidBankingAccount
+        SubTask validBankingAccountTask = SubTask.builder()
+                .subTaskName("validBankingAccountTask : " + "계좌 유효성 검사")
+                .membershipId(command.getTargetMembershipId())
+                .taskType("banking")
+                .status("ready")
+                .build();
+
+        List<SubTask> subTaskList = new ArrayList<>();
+        subTaskList.add(validMemberTask);
+        subTaskList.add(validBankingAccountTask);
+
+        RechargingMoneyTask task = RechargingMoneyTask.builder()
+                .taskID(UUID.randomUUID().toString())
+                .taskName("Increase Money Task / 머니 충전 Task")
+                .subTaskList(subTaskList)
+                .moneyAmount(command.getAmount())
+                .membershipID(command.getTargetMembershipId())
+                .toBankName("hanwha")
+                .build();
+
+        // 2. Kafka Cluster Produce
+        sendRechargingMoneyTaskPort.sendReChargingMoneyTaskPort(task);
+        countDownLatchManager.addCountDownLatch(task.getTaskID());
+
+        // 3. Wait
+        try {
+            countDownLatchManager.getCountDownLatch(task.getTaskID()).await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        // 3-1. task-consumer
+        // 등록된 subTask, status 모두 Ok -> task 결과물 produce
+        // 4. Task Result Consume
+        // 5. Consume ok, Logic
+
+        String result = countDownLatchManager.getDataForKey(task.getTaskID());
+
+        if (result.equals("success")) {
+
+            MemberMoneyJpaEntity memberMoneyJpaEntity = increaseMoneyPort.increaseMoney(
+                    new MemberMoney.MembershipId(command.getTargetMembershipId())
+                    ,command.getAmount());
+
+            if(memberMoneyJpaEntity != null) {
+                return mapper.mapToDomainEntity(increaseMoneyPort.createMoneyChangingRequest(
+                                new MoneyChangingRequest.TargetMembershipId(command.getTargetMembershipId()),
+                                new MoneyChangingRequest.MoneyChangingType(1),
+                                new MoneyChangingRequest.ChangingMoneyAmount(command.getAmount()),
+                                new MoneyChangingRequest.MoneyChangingStatus(1),
+                                new MoneyChangingRequest.Uuid(UUID.randomUUID().toString())
+                        )
+                );
+            }
+        }
         return null;
     }
 }

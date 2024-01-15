@@ -1,0 +1,38 @@
+plugins {
+    id 'com.palantir.docker' version '0.35.0'
+}
+
+group = 'com.payment.taskconsumer'
+version = '1.0.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor('org.springframework.boot:spring-boot-configuration-processor')
+
+    implementation(group: 'io.springfox', name: 'springfox-swagger-ui', version: '2.9.2')
+    implementation(group: 'io.springfox', name: 'springfox-swagger2', version: '2.9.2')
+
+    implementation('org.springframework.boot:spring-boot-starter-validation')
+    implementation('org.springframework.boot:spring-boot-starter-actuator')
+    implementation('org.springframework.boot:spring-boot-starter-web')
+//    implementation('org.springframework.boot:spring-boot-starter-data-jpa')
+
+    testImplementation('com.tngtech.archunit:archunit:1.0.1')
+    testImplementation('org.springframework.boot:spring-boot-starter-test')
+    testImplementation('junit:junit:4.13.1')
+
+//    runtimeOnly('com.h2database:h2')
+//    runtimeOnly('mysql:mysql-connector-java')
+    implementation project(':common')
+}
+
+docker {
+    println(tasks.bootJar.outputs.files)
+    name rootProject.name+'-'+project.name+":"+version
+    dockerfile file('../Dockerfile')
+    files tasks.bootJar.outputs.files
+    buildArgs(['JAR_FILE': tasks.bootJar.outputs.files.singleFile.name])
+}

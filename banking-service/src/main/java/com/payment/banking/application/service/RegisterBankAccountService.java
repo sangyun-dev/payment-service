@@ -5,6 +5,8 @@ import com.payment.banking.adapter.out.external.bank.GetBankAccountRequest;
 import com.payment.banking.adapter.out.persistence.RegisteredBankAccountMapper;
 import com.payment.banking.application.port.in.RegisterBankAccountCommand;
 import com.payment.banking.application.port.in.RegisterBankAccountUseCase;
+import com.payment.banking.application.port.out.GetMembershipPort;
+import com.payment.banking.application.port.out.MembershipStatus;
 import com.payment.banking.application.port.out.RegisterBankAccountPort;
 import com.payment.banking.application.port.out.RequestBankAccountInfoPort;
 import com.payment.banking.domain.RegisteredBankAccount;
@@ -24,12 +26,18 @@ public class RegisterBankAccountService implements RegisterBankAccountUseCase {
 
     private final RequestBankAccountInfoPort requestBankAccountInfoPort;
 
+    private final GetMembershipPort getMembershipPort;
+
     @Override
     public RegisteredBankAccount registerBankAccount(RegisterBankAccountCommand command) {
 
         // 은행 계좌를 등록해야하는 서비스 (비즈니스 로직)
 
         // (멤버 서비스 확인) 멤버 인증
+        MembershipStatus membershipStatus = getMembershipPort.getMembership(command.getMembershipId());
+        if (!membershipStatus.isValid()) {
+            return null;
+        }
 
         // 1. 외부 실제 등록이 가능한 계좌(정상)인지 확인한다.
         // Port -> Adapter -> External System
